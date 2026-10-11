@@ -81,6 +81,48 @@ docker compose down
 
 Image on Docker Hub: [mouhibfahem/flashcards-api](https://hub.docker.com/r/mouhibfahem/flashcards-api)
 
+## Kubernetes
+
+Manifests live in [`k8s/`](k8s/) and are applied together with Kustomize:
+
+| File | What it creates |
+| --- | --- |
+| `namespace.yaml` | Namespace `flashcards` |
+| `configmap.yaml` | Configuration (`PORT`, `OTEL_SERVICE_NAME`) injected as environment variables |
+| `deployment.yaml` | 2 replicas, rolling updates with no downtime, readiness/liveness probes on `/health`, CPU/memory requests and limits, hardened security context (non-root, read-only filesystem, no Linux capabilities) |
+| `service.yaml` | ClusterIP Service on port 80 → container port 8080 |
+
+### Run it locally with kind
+
+```bash
+kind create cluster --name devops
+kubectl apply -k k8s/
+kubectl -n flashcards rollout status deployment/flashcards-api
+kubectl -n flashcards get pods,svc
+
+# Reach the API through the Service
+kubectl -n flashcards port-forward svc/flashcards-api 8080:80
+curl http://localhost:8080/cards/random
+
+# Clean up
+kind delete cluster --name devops
+```
+
+The Deployment pulls `mouhibfahem/flashcards-api:latest` from Docker Hub. To try a
+local build instead: `docker build -t mouhibfahem/flashcards-api:latest .` then
+`kind load docker-image mouhibfahem/flashcards-api:latest --name devops`.
+
+> Cards are stored in each pod's memory, so the two replicas do not share cards;
+> the Service uses `sessionAffinity: ClientIP` so a client keeps talking to the
+> same pod. A real deployment would move the cards to a database to scale freely.
+
+### Continuous deployment
+
+On every pull request and push, the pipeline creates a fresh kind cluster,
+loads the image it just built and scanned, applies `k8s/`, waits for the
+rollout, runs smoke tests through the Service, and then runs the **OWASP ZAP
+scan against the API deployed in Kubernetes**.
+
 ## Observability
 
 ### Structured logs
@@ -193,8 +235,9 @@ Every push to `main` and every pull request runs the
 4. Build of the binary
 5. SAST: gosec, govulncheck, gitleaks
 6. Docker image build + Trivy scan
-7. DAST: OWASP ZAP scan of the running container
-8. On `main` only, once everything passed: push to Docker Hub with the tags
+7. Deployment to a kind Kubernetes cluster + smoke tests
+8. DAST: OWASP ZAP scan of the API deployed in Kubernetes
+9. On `main` only, once everything passed: push to Docker Hub with the tags
    `latest` and `sha-<commit>`
 
 Docker Hub credentials are stored as GitHub secrets (`DOCKERHUB_USERNAME`,

@@ -145,8 +145,8 @@ jobs:
           name: trivy-report
           path: reports/trivy.txt
 
-  dast:
-    name: DAST (OWASP ZAP API scan)
+  deploy:
+    name: Deploy to Kubernetes (kind) + DAST (OWASP ZAP)
     needs: image
     runs-on: ubuntu-latest
     steps:
@@ -158,18 +158,43 @@ jobs:
         with:
           name: image
 
-      - name: Start the API
+      - name: Create a kind Kubernetes cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: ci
+
+      - name: Load the image into the cluster
         run: |
           docker load -i image.tar
-          docker run -d --name api -p 8080:8080 flashcards-api:ci
-          for i in $(seq 1 20); do curl -sf http://localhost:8080/health && break; sleep 1; done
+          kind load docker-image flashcards-api:ci --name ci
 
-      - name: ZAP API scan against the running API
+      - name: Deploy the manifests
+        run: |
+          # Deploy the image built and scanned in this run instead of :latest.
+          sed -i 's|mouhibfahem/flashcards-api:latest|flashcards-api:ci|' k8s/deployment.yaml
+          kubectl apply -k k8s/
+          kubectl -n flashcards rollout status deployment/flashcards-api --timeout=120s
+          kubectl -n flashcards get deploy,pods,svc -o wide
+
+      - name: Smoke test through the Kubernetes Service
+        run: |
+          kubectl -n flashcards port-forward svc/flashcards-api 8080:80 > /tmp/port-forward.log 2>&1 &
+          for i in $(seq 1 20); do curl -sf http://localhost:8080/health && break; sleep 1; done
+          curl -sf http://localhost:8080/cards | head -c 300; echo
+          curl -sf http://localhost:8080/metrics | grep -m1 http_requests_total
+
+      - name: DAST — ZAP API scan against the deployed API
         run: |
           mkdir -p reports && chmod 777 reports
           cp openapi.yaml reports/openapi.yaml
           docker run --rm --network host -v "$PWD/reports:/zap/wrk:rw" ghcr.io/zaproxy/zaproxy:stable             zap-api-scan.py -t /zap/wrk/openapi.yaml -f openapi             -r zap-report.html -J zap-report.json -w zap-report.md -I
           cat reports/zap-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cluster state and API logs
+        if: always()
+        run: |
+          kubectl -n flashcards get all
+          kubectl -n flashcards logs deployment/flashcards-api --tail=20
 
       - name: Keep the ZAP report
         if: always()
@@ -183,7 +208,7 @@ jobs:
 
   publish:
     name: Push Docker image to Docker Hub
-    needs: [image, dast]
+    needs: [image, deploy]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:

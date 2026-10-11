@@ -16,5 +16,6 @@ FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/api /api
 ENV PORT=8080
 EXPOSE 8080
-USER nonroot:nonroot
+# 65532 = "nonroot" in distroless; numeric so Kubernetes can verify runAsNonRoot
+USER 65532:65532
 ENTRYPOINT ["/api"]
