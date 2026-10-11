@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Rapport — Projet DevOps Flashcards API</title>
+<style>
+  @page { size: A4; margin: 14mm 15mm; }
+  :root { --ink:#1b1f24; --muted:#57606a; --line:#d0d7de; --accent:#0b6bcb; --tint:#eef5fc; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--ink); font-size: 9.6pt; line-height: 1.38; margin: 0; }
+  h1 { font-size: 17pt; margin: 0 0 2px; }
+  .sub { color: var(--muted); font-size: 9pt; margin-bottom: 8px; }
+  h2 { font-size: 11.2pt; color: var(--accent); margin: 10px 0 4px; padding-bottom: 2px; border-bottom: 1px solid var(--line); }
+  p { margin: 3px 0 5px; }
+  ul { margin: 2px 0 5px; padding-left: 16px; }
+  li { margin: 1px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 4px 0 6px; font-size: 8.8pt; }
+  th, td { border: 1px solid var(--line); padding: 3px 5px; text-align: left; vertical-align: top; }
+  th { background: var(--tint); }
+  code { font-family: Consolas, monospace; font-size: 8.6pt; background: #f3f4f6; padding: 0 3px; border-radius: 3px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .box { background: var(--tint); border-left: 3px solid var(--accent); padding: 5px 8px; margin: 5px 0; }
+  .page-break { break-before: page; }
+  svg text { font-family: "Segoe UI", Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<h1>Projet DevOps — Flashcards API</h1>
+<div class="sub">Rapport final · Mouhib Fahem · octobre 2026 ·
+Dépôt : github.com/mouhibfahem/devops · Image : hub.docker.com/r/mouhibfahem/flashcards-api</div>
+
+<h2>1. Objectif et application</h2>
+<p>L'objectif était d'appliquer toute la chaîne DevOps à un petit service : du code jusqu'au déploiement,
+avec automatisation, observabilité et sécurité. L'application est une <b>API REST de flashcards</b> écrite en Go
+(bibliothèque standard, <b>149 lignes</b> dans <code>main.go</code>) qui aide à réviser des notions du cours.
+Elle permet de créer, lister, consulter et supprimer des cartes, et propose un <b>mode quiz</b>
+(<code>GET /cards/random</code>) qui renvoie une question au hasard sans sa réponse. Les tests unitaires couvrent
+<b>90,8 %</b> du code.</p>
+
+<h2>2. Architecture</h2>
+<svg viewBox="0 0 760 236" width="100%" role="img" aria-label="Architecture du projet">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#57606a"/></marker></defs>
+  <g font-size="11">
+    <rect x="4" y="4" width="752" height="66" rx="8" fill="#f6f8fa" stroke="#d0d7de"/>
+    <text x="14" y="20" font-weight="600" fill="#57606a">1 · Pipeline GitHub Actions (à chaque Pull Request et merge)</text>
+    <g fill="none" stroke="#57606a"><rect x="14" y="28" width="128" height="34" rx="6"/><rect x="164" y="28" width="128" height="34" rx="6"/><rect x="314" y="28" width="128" height="34" rx="6"/><rect x="464" y="28" width="128" height="34" rx="6"/><rect x="614" y="28" width="132" height="34" rx="6"/></g>
+    <g text-anchor="middle" fill="#1b1f24"><text x="78" y="49">Lint + tests</text><text x="228" y="49">SAST</text><text x="378" y="49">Image + Trivy</text><text x="528" y="49">Kubernetes + DAST</text><text x="680" y="49">Docker Hub</text></g>
+    <g stroke="#57606a" marker-end="url(#a)"><line x1="142" y1="45" x2="162" y2="45"/><line x1="292" y1="45" x2="312" y2="45"/><line x1="442" y1="45" x2="462" y2="45"/><line x1="592" y1="45" x2="612" y2="45"/></g>
+    <text x="14" y="88" font-weight="600" fill="#57606a">2 · Exécution : Kubernetes (kind) ou Docker Compose</text>
+    <rect x="4" y="96" width="752" height="136" rx="8" fill="#f6f8fa" stroke="#d0d7de"/>
+    <rect x="20" y="112" width="200" height="104" rx="8" fill="#eef5fc" stroke="#0b6bcb" stroke-width="1.6"/>
+    <text x="120" y="132" text-anchor="middle" font-weight="600">Flashcards API (Go)</text>
+    <text x="120" y="150" text-anchor="middle" fill="#57606a">2 pods · Service · sondes</text>
+    <text x="120" y="168" text-anchor="middle" fill="#57606a">/cards · /health · /metrics</text>
+    <text x="120" y="186" text-anchor="middle" fill="#57606a">logs JSON (slog)</text>
+    <text x="120" y="204" text-anchor="middle" fill="#57606a">spans OpenTelemetry</text>
+    <g fill="#fff" stroke="#57606a"><rect x="300" y="112" width="140" height="44" rx="6"/><rect x="500" y="112" width="140" height="44" rx="6"/><rect x="300" y="172" width="140" height="44" rx="6"/><rect x="500" y="172" width="140" height="44" rx="6"/></g>
+    <g text-anchor="middle"><text x="370" y="138">Prometheus</text><text x="570" y="138">Grafana (dashboard)</text><text x="370" y="198">Jaeger (traces)</text><text x="570" y="198">OWASP ZAP (DAST)</text></g>
+    <g stroke="#57606a" fill="none" marker-end="url(#a)"><path d="M298 134 H222"/><line x1="440" y1="134" x2="498" y2="134"/><line x1="222" y1="194" x2="298" y2="194"/><path d="M500 206 H470 V224 H160 V218"/></g>
+    <text x="260" y="128" text-anchor="middle" font-size="9.5" fill="#57606a">scrape</text>
+    <text x="260" y="188" text-anchor="middle" font-size="9.5" fill="#57606a">OTLP</text>
+    <text x="330" y="232" font-size="9.5" fill="#57606a">attaque l'API déployée</text>
+  </g>
+</svg>
+<p>Chaque tâche suit le même flux : une <b>issue</b> (10 issues, tableau Kanban public GitHub Projects), une
+<b>branche</b>, une <b>Pull Request</b> liée à l'issue, la vérification par le pipeline, puis le merge. Au total,
+<b>8 Pull Requests</b> ont été fusionnées.</p>
+
+<h2>3. Pipeline CI/CD (GitHub Actions)</h2>
+<table>
+<tr><th style="width:24%">Job</th><th>Ce qu'il fait</th></tr>
+<tr><td>Lint, test, build</td><td><code>gofmt</code>, <code>go vet</code>, tests avec détecteur de concurrence et couverture, compilation</td></tr>
+<tr><td>SAST</td><td>gosec (résultats dans GitHub code scanning), govulncheck (dépendances), gitleaks (secrets dans l'historique)</td></tr>
+<tr><td>Image</td><td>Build Docker unique puis scan <b>Trivy</b> : échec si une faille HIGH/CRITICAL corrigible est présente</td></tr>
+<tr><td>Deploy + DAST</td><td>Cluster <b>kind</b> neuf, déploiement de l'image scannée, tests à travers le Service, scan <b>OWASP ZAP</b> de l'API déployée</td></tr>
+<tr><td>Publish (main)</td><td>Push sur Docker Hub (<code>latest</code>, <code>sha-&lt;commit&gt;</code>) <b>uniquement si tout est vert</b></td></tr>
+</table>
+<p>Les identifiants Docker Hub sont des <b>secrets GitHub</b>, jamais dans le code. Les rapports (couverture, SAST,
+Trivy, ZAP) sont conservés comme artefacts de chaque exécution.</p>
+
+<h2 class="page-break">4. Conteneurisation</h2>
+<p><code>Dockerfile</code> en deux étapes : <code>golang:1.27.2-alpine</code> compile un binaire statique, puis
+seul ce binaire est copié dans une image <b>distroless</b> (environ 30 Mo, sans shell, utilisateur non-root
+65532). Le fichier <code>docker-compose.yml</code> lance l'API avec Prometheus, Grafana et Jaeger en une commande.</p>
+
+<h2>5. Observabilité</h2>
+<div class="grid">
+<div>
+<ul>
+<li><b>Logs</b> : une ligne JSON par requête (<code>log/slog</code>) avec méthode, route, statut, durée,
+<code>request_id</code>, <code>trace_id</code>. Le niveau suit le statut : INFO, WARN (4xx), ERROR (5xx et
+<i>panics</i> récupérées).</li>
+<li><b>Métriques</b> : <code>/metrics</code> au format Prometheus : compteur de requêtes, histogramme des temps
+de réponse, requêtes en cours. Le label <code>route</code> utilise le motif (<code>GET /cards/{id}</code>) pour
+limiter le nombre de séries.</li>
+<li><b>Dashboard</b> Grafana provisionné automatiquement : requêtes/s, taux d'erreurs, latence p50/p95/p99.</li>
+<li><b>Tracing</b> : un span OpenTelemetry par requête, exporté en OTLP vers Jaeger ; un en-tête
+<code>traceparent</code> entrant est poursuivi.</li>
+</ul>
+</div>
+<div class="box">
+<b>Lien avec le cours SRE.</b> La latence p95 et le taux d'erreurs sont des <b>SLI</b>. Un <b>SLO</b> possible :
+« 95 % des requêtes en moins de 200 ms et moins de 0,1 % d'erreurs 5xx sur un mois ». Lors des tests de charge,
+la p95 mesurée était inférieure à 1 ms.
+</div>
+</div>
+
+<h2>6. Sécurité</h2>
+<table>
+<tr><th style="width:38%">Problème trouvé</th><th style="width:16%">Outil</th><th>Correction</th></tr>
+<tr><td>11 vulnérabilités connues dans Go 1.27.0 et <code>x/net</code> v0.59.0</td><td>govulncheck</td><td>Toolchain go1.27.2 et <code>x/net</code> v0.60.0</td></tr>
+<tr><td>Injection dans les logs (G706)</td><td>gosec</td><td>Attribut structuré <code>slog</code></td></tr>
+<tr><td>En-têtes <code>X-Content-Type-Options</code> et <code>Cross-Origin-Resource-Policy</code> absents</td><td>OWASP ZAP</td><td>En-têtes de sécurité sur toutes les réponses ; le second scan ne garde que des alertes informatives</td></tr>
+</table>
+<p>Autres mesures : aucune fuite de secret (gitleaks), 0 faille HIGH/CRITICAL dans l'image (Trivy), corps de
+requête limité à 1 Mo, délais d'expiration serveur, conteneur non-root et en lecture seule.</p>
+
+<h2>7. Kubernetes</h2>
+<p>Les manifests <code>k8s/</code>, appliqués avec Kustomize, créent un namespace, une ConfigMap, un
+<b>Deployment de 2 réplicas</b> et un <b>Service</b> ClusterIP. Le Deployment définit des sondes
+<i>readiness</i> et <i>liveness</i> sur <code>/health</code>, des requêtes et limites CPU/mémoire, une mise à jour
+progressive sans interruption (<code>maxUnavailable: 0</code>) et un contexte de sécurité strict (non-root, système de
+fichiers en lecture seule, aucune capability Linux). Test en local avec kind : quand on supprime un pod, Kubernetes
+le recrée en quelques secondes.</p>
+
+<h2>8. Leçons apprises</h2>
+<ul>
+<li><b>Les scans trouvent de vrais problèmes.</b> govulncheck a révélé des failles dans la version même de Go ;
+sans automatisation, elles seraient passées inaperçues.</li>
+<li><b>L'outillage évolue plus vite que les outils.</b> gosec ne lisait pas encore Go 1.27 et a dû être exécuté
+avec Go 1.26. Il faut vérifier qu'un outil analyse réellement tout le code.</li>
+<li><b>Kubernetes est strict.</b> <code>runAsNonRoot</code> exige un UID numérique dans l'image ; l'erreur
+<code>CreateContainerConfigError</code> l'a révélé.</li>
+<li><b>L'état en mémoire empêche de passer à l'échelle.</b> Avec 2 réplicas, chaque pod a ses propres cartes ;
+une base de données serait l'étape suivante.</li>
+<li><b>Petits incréments.</b> Une issue = une PR vérifiée par le pipeline : chaque erreur est restée petite et
+facile à corriger.</li>
+</ul>
+
+<h2>9. Pistes d'amélioration</h2>
+<p>Base de données (PostgreSQL) pour partager les cartes entre pods, déploiement sur un cloud (bonus), Prometheus et
+Grafana dans le cluster, alertes basées sur les SLO, et spans enfants pour un tracing plus détaillé.</p>
+
+</body>
+</html>

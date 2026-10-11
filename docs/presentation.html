@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flashcards API — Présentation DevOps</title>
+<style>
+  :root { --bg:#0f1720; --panel:#16212d; --ink:#e8eef5; --muted:#9fb0c2; --line:#2a3a4c; --accent:#4ea1ff; --good:#3fb950; --warn:#d29922; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #070b10; overflow: hidden; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--ink); }
+  #stage { position: absolute; left: 50%; top: 50%; width: 1280px; height: 720px; transform-origin: center; }
+  .slide { position: absolute; inset: 0; background: var(--bg); padding: 56px 72px 64px; display: none; flex-direction: column; }
+  .slide.active { display: flex; }
+  h1 { font-size: 54px; margin: 0 0 12px; line-height: 1.1; }
+  h2 { font-size: 38px; margin: 0 0 22px; }
+  h2 small { display: block; font-size: 19px; color: var(--accent); font-weight: 600; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 6px; }
+  p, li { font-size: 23px; line-height: 1.45; }
+  ul { margin: 0; padding-left: 28px; }
+  li { margin: 7px 0; }
+  .muted { color: var(--muted); }
+  b, strong { color: #fff; }
+  code { font-family: Consolas, monospace; background: #0b1218; border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; font-size: .88em; color: #cfe6ff; }
+  pre { background: #0b1218; border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; font-size: 19px; line-height: 1.5; margin: 0; color: #cfe6ff; white-space: pre-wrap; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; flex: 1; min-height: 0; }
+  .cols.wide-left { grid-template-columns: 1.15fr .85fr; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; }
+  .card h3 { margin: 0 0 8px; font-size: 22px; color: var(--accent); }
+  .card p, .card li { font-size: 20px; margin: 4px 0; }
+  .stats { display: flex; gap: 18px; margin-top: 26px; }
+  .stat { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .stat b { display: block; font-size: 36px; color: var(--accent); }
+  .stat span { font-size: 17px; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 20px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--accent); font-weight: 600; }
+  img.shot { width: 100%; height: 100%; object-fit: contain; object-position: top; border-radius: 10px; border: 1px solid var(--line); background: #111; }
+  .pipeline { display: flex; align-items: stretch; gap: 10px; margin: 8px 0 26px; }
+  .step { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 10px; text-align: center; position: relative; }
+  .step b { display: block; font-size: 19px; margin-bottom: 4px; }
+  .step span { font-size: 15px; color: var(--muted); }
+  .step.hi { border-color: var(--good); }
+  .arrow { align-self: center; color: var(--muted); font-size: 24px; }
+  .tag { display: inline-block; font-size: 15px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); margin-right: 6px; }
+  .title-slide { justify-content: center; background: radial-gradient(1200px 600px at 85% 20%, #15314f 0%, var(--bg) 60%); }
+  .title-slide .kicker { color: var(--accent); font-size: 22px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 18px; }
+  .footer { position: absolute; left: 72px; right: 72px; bottom: 22px; display: flex; justify-content: space-between; font-size: 15px; color: var(--muted); }
+  #progress { position: fixed; left: 0; bottom: 0; height: 4px; background: var(--accent); transition: width .2s; z-index: 5; }
+  #hint { position: fixed; right: 14px; top: 10px; font: 13px "Segoe UI", sans-serif; color: #5d6d7e; z-index: 5; }
+  svg text { font-family: "Segoe UI", Arial, sans-serif; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- 1 -->
+<section class="slide title-slide">
+  <div class="kicker">Projet DevOps · 2026</div>
+  <h1>Flashcards API</h1>
+  <p class="muted" style="font-size:28px;margin:0 0 30px">Une petite API, toute la chaîne DevOps :<br>code, CI/CD, Docker, Kubernetes, observabilité, sécurité.</p>
+  <p style="font-size:20px">Mouhib Fahem · <span class="muted">github.com/mouhibfahem/devops</span></p>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <h2><small>Le service</small>Une API pour réviser… le DevOps</h2>
+  <div class="cols wide-left">
+    <div>
+      <table>
+        <tr><th>Route</th><th>Rôle</th></tr>
+        <tr><td><code>GET /cards</code></td><td>Lister (filtre <code>?topic=</code>)</td></tr>
+        <tr><td><code>POST /cards</code></td><td>Créer une carte</td></tr>
+        <tr><td><code>GET /cards/{id}</code></td><td>Consulter</td></tr>
+        <tr><td><code>DELETE /cards/{id}</code></td><td>Supprimer</td></tr>
+        <tr><td><code>GET /cards/random</code></td><td><b>Mode quiz</b> : question sans réponse</td></tr>
+        <tr><td><code>GET /health</code></td><td>Santé (sondes Kubernetes)</td></tr>
+      </table>
+    </div>
+    <div>
+      <pre>$ curl /cards/random
+{"id":2,
+ "topic":"sre",
+ "question":"What is an SLO?"}</pre>
+      <div class="stats" style="flex-direction:column">
+        <div class="stat"><b>149 lignes</b><span>Go, bibliothèque standard (limite : 150)</span></div>
+        <div class="stat"><b>90,8 %</b><span>du code couvert par les tests</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <h2><small>Architecture</small>Du commit au cluster, sans intervention manuelle</h2>
+  <svg viewBox="0 0 1136 470" width="100%" style="flex:1">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9fb0c2"/></marker></defs>
+    <g font-size="17">
+      <rect x="2" y="2" width="1132" height="130" rx="12" fill="#121c27" stroke="#2a3a4c"/>
+      <text x="22" y="32" fill="#9fb0c2" font-weight="600">1 · GitHub : issue → branche → Pull Request → pipeline → merge</text>
+      <g fill="#16212d" stroke="#2a3a4c"><rect x="22" y="52" width="196" height="60" rx="10"/><rect x="246" y="52" width="196" height="60" rx="10"/><rect x="470" y="52" width="196" height="60" rx="10"/><rect x="694" y="52" width="196" height="60" rx="10"/><rect x="918" y="52" width="196" height="60" rx="10" stroke="#3fb950"/></g>
+      <g text-anchor="middle" fill="#e8eef5"><text x="120" y="88">Lint + tests</text><text x="344" y="88">SAST</text><text x="568" y="88">Image + Trivy</text><text x="792" y="88">Kubernetes + DAST</text><text x="1016" y="88">Docker Hub</text></g>
+      <g stroke="#9fb0c2" stroke-width="1.5" marker-end="url(#ar)"><line x1="218" y1="82" x2="244" y2="82"/><line x1="442" y1="82" x2="468" y2="82"/><line x1="666" y1="82" x2="692" y2="82"/><line x1="890" y1="82" x2="916" y2="82"/></g>
+      <rect x="2" y="160" width="1132" height="306" rx="12" fill="#121c27" stroke="#2a3a4c"/>
+      <text x="22" y="190" fill="#9fb0c2" font-weight="600">2 · Exécution : Kubernetes (kind) ou Docker Compose</text>
+      <rect x="22" y="214" width="320" height="226" rx="12" fill="#14304d" stroke="#4ea1ff" stroke-width="2"/>
+      <g text-anchor="middle"><text x="182" y="250" font-weight="700" font-size="21" fill="#fff">Flashcards API (Go)</text>
+      <text x="182" y="290" fill="#9fb0c2">2 pods · Service · sondes</text><text x="182" y="324" fill="#9fb0c2">/cards · /health · /metrics</text>
+      <text x="182" y="358" fill="#9fb0c2">logs JSON</text><text x="182" y="392" fill="#9fb0c2">spans OpenTelemetry</text></g>
+      <g fill="#16212d" stroke="#2a3a4c"><rect x="470" y="214" width="250" height="80" rx="10"/><rect x="820" y="214" width="294" height="80" rx="10"/><rect x="470" y="340" width="250" height="80" rx="10"/><rect x="820" y="340" width="294" height="80" rx="10"/></g>
+      <g text-anchor="middle" fill="#e8eef5"><text x="595" y="260">Prometheus</text><text x="967" y="260">Grafana (dashboard)</text><text x="595" y="386">Jaeger (traces)</text><text x="967" y="386">OWASP ZAP (DAST)</text></g>
+      <g stroke="#9fb0c2" stroke-width="1.5" fill="none" marker-end="url(#ar)"><line x1="468" y1="254" x2="345" y2="254"/><line x1="720" y1="254" x2="818" y2="254"/><line x1="342" y1="380" x2="468" y2="380"/><path d="M967 420 V448 H182 V443"/></g>
+      <g font-size="14" fill="#9fb0c2" text-anchor="middle"><text x="406" y="244">scrape</text><text x="406" y="370">OTLP</text><text x="760" y="440">attaque l'API déployée</text></g>
+    </g>
+  </svg>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <h2><small>Workflow GitHub</small>Une tâche = une issue = une Pull Request</h2>
+  <div class="cols">
+    <div>
+      <ul>
+        <li><b>10 issues</b> pour découper le projet, suivies sur un <b>tableau Kanban</b> public (GitHub Projects)</li>
+        <li>Une <b>branche</b> par tâche : <code>feature/5-metrics</code></li>
+        <li>Une <b>Pull Request</b> liée à l'issue (<code>Closes #5</code>), fusionnée seulement si le pipeline est vert</li>
+        <li>Messages de commit à l'impératif : <i>« Add structured JSON logs… »</i></li>
+        <li><b>Revue de code</b> croisée avec un camarade</li>
+      </ul>
+    </div>
+    <div class="stats" style="flex-direction:column;margin-top:0">
+      <div class="stat"><b>10</b><span>issues · Todo → In Progress → Done</span></div>
+      <div class="stat"><b>8</b><span>Pull Requests fusionnées</span></div>
+      <div class="stat"><b>0</b><span>commit direct sur <code>main</code> après l'initialisation</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <h2><small>CI/CD · GitHub Actions</small>Chaque push passe par 5 étapes</h2>
+  <div class="pipeline">
+    <div class="step"><b>Lint + tests</b><span>gofmt · go vet<br>tests + couverture</span></div><div class="arrow">→</div>
+    <div class="step"><b>SAST</b><span>gosec · govulncheck<br>gitleaks</span></div><div class="arrow">→</div>
+    <div class="step"><b>Image</b><span>build Docker<br>scan Trivy</span></div><div class="arrow">→</div>
+    <div class="step"><b>Deploy + DAST</b><span>cluster kind<br>OWASP ZAP</span></div><div class="arrow">→</div>
+    <div class="step hi"><b>Publish</b><span>Docker Hub<br>si tout est vert</span></div>
+  </div>
+  <ul>
+    <li>L'image publiée est <b>exactement celle qui a été scannée et déployée</b> pendant le run</li>
+    <li>Identifiants Docker Hub dans les <b>secrets GitHub</b>, jamais dans le code</li>
+    <li>Rapports conservés comme <b>artefacts</b> : couverture, SAST, Trivy, ZAP</li>
+    <li>Sur une Pull Request, tout tourne sauf la publication</li>
+  </ul>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <h2><small>Conteneurisation</small>Une image petite, sans shell, non-root</h2>
+  <div class="cols">
+    <pre># 1. Compilation
+FROM golang:1.27.2-alpine AS build
+RUN CGO_ENABLED=0 go build -o /out/api .
+
+# 2. Exécution : seulement le binaire
+FROM gcr.io/distroless/static-debian12
+COPY --from=build /out/api /api
+USER 65532:65532
+ENTRYPOINT ["/api"]</pre>
+    <div>
+      <ul>
+        <li><b>Multi-étapes</b> : les outils de compilation ne partent pas en production</li>
+        <li><b>Distroless</b> : environ 30 Mo, pas de shell → moins de surface d'attaque</li>
+        <li><b>UID numérique</b> : Kubernetes peut vérifier <code>runAsNonRoot</code></li>
+        <li><b>docker compose up</b> : API + Prometheus + Grafana + Jaeger</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <h2><small>Kubernetes</small>Toujours 2 copies, et il se répare tout seul</h2>
+  <div class="cols wide-left">
+    <div>
+      <ul>
+        <li><b>Deployment</b> : 2 réplicas, mise à jour progressive sans coupure</li>
+        <li><b>Sondes</b> sur <code>/health</code> : <i>readiness</i> (prêt à recevoir du trafic ?) et <i>liveness</i> (encore vivant ?)</li>
+        <li><b>Ressources</b> : requêtes et limites CPU/mémoire</li>
+        <li><b>Sécurité</b> : non-root, système de fichiers en lecture seule, aucune capability</li>
+        <li><b>Service</b> ClusterIP + <b>ConfigMap</b>, appliqués avec Kustomize</li>
+      </ul>
+    </div>
+    <pre>$ kubectl delete pod flashcards-api-…h86ff
+pod deleted
+
+$ kubectl get pods
+flashcards-api-…2gpnf  Running  6s
+flashcards-api-…s88sj  Running  28s</pre>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <h2><small>Observabilité · logs et métriques</small>Voir ce qui se passe, en direct</h2>
+  <div class="cols wide-left" style="grid-template-columns:.8fr 1.2fr">
+    <div>
+      <div class="card"><h3>Logs JSON</h3><p>Une ligne par requête : route, statut, durée, <code>request_id</code>, <code>trace_id</code>. Le niveau suit le statut : INFO, WARN, ERROR.</p></div>
+      <div class="card" style="margin-top:14px"><h3>Métriques Prometheus</h3><p><code>/metrics</code> : nombre de requêtes, histogramme des temps de réponse, requêtes en cours, par <b>route</b>.</p></div>
+      <div class="card" style="margin-top:14px"><h3>SRE</h3><p>p95 = <b>SLI</b>. Un SLO possible : 95 % des requêtes en moins de 200 ms.</p></div>
+    </div>
+    <img class="shot" src="evidence/grafana-dashboard.png" alt="Dashboard Grafana">
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <h2><small>Observabilité · tracing</small>Suivre une requête de bout en bout</h2>
+  <div class="cols" style="grid-template-columns:.8fr 1.2fr">
+    <div>
+      <ul>
+        <li><b>OpenTelemetry</b> : un span par requête, nommé d'après sa route</li>
+        <li>Envoyé en <b>OTLP</b> à <b>Jaeger</b></li>
+        <li>En-tête <code>traceparent</code> entrant poursuivi</li>
+        <li><b>Corrélation</b> : le <code>trace_id</code> du log ouvre la trace dans Jaeger</li>
+      </ul>
+      <p class="muted" style="font-size:19px;margin-top:22px">Logs = <i>quoi</i> · Métriques = <i>combien, à quelle vitesse</i> · Traces = <i>par où</i></p>
+    </div>
+    <img class="shot" src="evidence/jaeger-search.png" alt="Traces dans Jaeger">
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <h2><small>Sécurité · SAST + DAST</small>Les scans ont trouvé de vrais problèmes</h2>
+  <table>
+    <tr><th style="width:42%">Problème</th><th style="width:18%">Outil</th><th>Correction</th></tr>
+    <tr><td><b>11 vulnérabilités connues</b> dans Go 1.27.0 et <code>x/net</code></td><td>govulncheck</td><td>Go 1.27.2, <code>x/net</code> 0.60.0</td></tr>
+    <tr><td>Injection dans les logs (G706)</td><td>gosec</td><td>Log structuré <code>slog</code></td></tr>
+    <tr><td>2 en-têtes de sécurité manquants</td><td>OWASP ZAP</td><td>En-têtes ajoutés → alertes disparues</td></tr>
+    <tr><td>Secrets dans l'historique Git</td><td>gitleaks</td><td>Aucun trouvé</td></tr>
+    <tr><td>Failles HIGH/CRITICAL dans l'image</td><td>Trivy</td><td>0</td></tr>
+  </table>
+  <p class="muted" style="margin-top:22px;font-size:20px"><b>SAST</b> : lit le code sans l'exécuter · <b>DAST</b> : attaque l'API déployée dans Kubernetes, comme un pirate</p>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <h2><small>Démo</small>En direct</h2>
+  <div class="cols">
+    <pre>docker compose up -d --build
+./scripts/load.sh http://localhost:8080 200
+
+# Grafana    → http://localhost:3000
+# Jaeger     → http://localhost:16686
+# Prometheus → http://localhost:9090</pre>
+    <pre>kubectl apply -k k8s/
+kubectl -n flashcards get pods
+kubectl -n flashcards port-forward \
+  svc/flashcards-api 8080:80
+curl localhost:8080/cards/random
+kubectl -n flashcards delete pod &lt;pod&gt;</pre>
+  </div>
+  <p class="muted" style="margin-top:20px;font-size:20px">Et sur GitHub : un pipeline vert, l'onglet Security (gosec), les artefacts ZAP et Trivy.</p>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <h2><small>Bilan</small>Leçons apprises</h2>
+  <div class="cols">
+    <ul>
+      <li><b>Automatiser révèle des problèmes</b> invisibles à l'œil : des failles dans la version même de Go</li>
+      <li><b>Vérifier les outils</b> : gosec ne lisait pas Go 1.27 et a dû tourner avec Go 1.26</li>
+      <li><b>Kubernetes est strict</b> : <code>runAsNonRoot</code> exige un UID numérique</li>
+      <li><b>Petits incréments</b> : une PR par tâche, des erreurs petites et faciles à corriger</li>
+    </ul>
+    <div class="card">
+      <h3>Et après ?</h3>
+      <ul>
+        <li>Une base de données : les 2 pods ne partagent pas leurs cartes en mémoire</li>
+        <li>Déploiement dans le cloud (bonus)</li>
+        <li>Alertes basées sur les SLO</li>
+        <li>Spans enfants pour un tracing plus fin</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 13 -->
+<section class="slide title-slide">
+  <div class="kicker">Merci</div>
+  <h1>Questions ?</h1>
+  <p class="muted" style="font-size:24px">github.com/mouhibfahem/devops<br>hub.docker.com/r/mouhibfahem/flashcards-api</p>
+</section>
+
+</div>
+<div id="progress"></div>
+<div id="hint">← → pour naviguer · F plein écran</div>
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const stage = document.getElementById('stage');
+  let i = 0;
+  try { i = Math.min(slides.length - 1, Math.max(0, parseInt(location.hash.slice(1), 10) - 1 || 0)); } catch (e) {}
+  slides.forEach((s, n) => {
+    if (!s.classList.contains('title-slide')) {
+      const f = document.createElement('div');
+      f.className = 'footer';
+      f.innerHTML = '<span>Flashcards API · Projet DevOps</span><span>' + (n + 1) + ' / ' + slides.length + '</span>';
+      s.appendChild(f);
+    }
+  });
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    document.getElementById('progress').style.width = ((i + 1) / slides.length * 100) + '%';
+    history.replaceState(null, '', '#' + (i + 1));
+  }
+  function fit() {
+    const s = Math.min(innerWidth / 1280, innerHeight / 720);
+    stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+  }
+  addEventListener('resize', fit);
+  addEventListener('keydown', e => {
+    if (['ArrowRight', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    if (['ArrowLeft', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+    if (e.key === 'f' || e.key === 'F') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+  });
+  addEventListener('click', e => { if (e.clientX > innerWidth / 3) show(i + 1); else show(i - 1); });
+  fit(); show(i);
+</script>
+</body>
+</html>
