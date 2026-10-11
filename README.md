@@ -101,6 +101,40 @@ the middleware in [`middleware.go`](middleware.go):
 Sample output: [`docs/evidence/sample-logs.jsonl`](docs/evidence/sample-logs.jsonl).
 With Docker: `docker compose logs -f api`.
 
+### Metrics and dashboard
+
+The API exposes Prometheus metrics on **`GET /metrics`** ([`metrics.go`](metrics.go)):
+
+| Metric | Type | Labels |
+| --- | --- | --- |
+| `http_requests_total` | counter | `method`, `route`, `status` |
+| `http_request_duration_seconds` | histogram | `method`, `route` |
+| `http_requests_in_flight` | gauge | — |
+
+The `route` label is the matched pattern (`GET /cards/{id}`), not the raw path,
+so the number of time series stays small. Go runtime metrics (`go_*`,
+`process_*`) are exposed too.
+
+Run the API with Prometheus and Grafana, then send some traffic:
+
+```bash
+docker compose up -d --build
+./scripts/load.sh http://localhost:8080 200
+```
+
+| Service | URL |
+| --- | --- |
+| API | http://localhost:8080 |
+| Prometheus | http://localhost:9090 |
+| Grafana (dashboard **Flashcards API**, anonymous view, admin/admin) | http://localhost:3000 |
+
+The Grafana data source and dashboard are provisioned from
+[`observability/`](observability/), so they appear automatically. The dashboard
+shows requests per second, error rates, p50/p95/p99 latency and traffic by route
+and status:
+
+![Grafana dashboard](docs/evidence/grafana-dashboard.png)
+
 ## CI/CD
 
 Every push to `main` and every pull request runs the
