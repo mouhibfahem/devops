@@ -1,0 +1,52 @@
+$ kubectl -n flashcards get deploy,pods,svc -o wide
+NAME                             READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                              SELECTOR
+deployment.apps/flashcards-api   1/2     2            1           29s   api          mouhibfahem/flashcards-api:latest   app=flashcards-api
+
+NAME                                 READY   STATUS    RESTARTS   AGE   IP           NODE                   NOMINATED NODE   READINESS GATES
+pod/flashcards-api-8468776b7-2gpnf   0/1     Running   0          7s    10.244.0.7   devops-control-plane   <none>           <none>
+pod/flashcards-api-8468776b7-s88sj   1/1     Running   0          29s   10.244.0.5   devops-control-plane   <none>           <none>
+
+NAME                     TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE   SELECTOR
+service/flashcards-api   ClusterIP   10.96.174.80   <none>        80/TCP    29s   app=flashcards-api
+
+$ kubectl -n flashcards describe deployment flashcards-api (extract)
+Name:                   flashcards-api
+Namespace:              flashcards
+CreationTimestamp:      Sun, 11 Oct 2026 12:25:14 +0100
+Labels:                 app=flashcards-api
+Annotations:            deployment.kubernetes.io/revision: 1
+Selector:               app=flashcards-api
+Replicas:               2 desired | 2 updated | 2 total | 2 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  0 max unavailable, 1 max surge
+Pod Template:
+  Labels:       app=flashcards-api
+  Annotations:  prometheus.io/path: /metrics
+                prometheus.io/port: 8080
+                prometheus.io/scrape: true
+  Containers:
+   api:
+    Image:      mouhibfahem/flashcards-api:latest
+    Port:       8080/TCP (http)
+    Host Port:  0/TCP (http)
+    Limits:
+      cpu:     250m
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   32Mi
+    Liveness:   http-get http://:http/health delay=5s timeout=1s period=10s successThreshold=1 failureThreshold=3
+    Readiness:  http-get http://:http/health delay=2s timeout=1s period=5s successThreshold=1 failureThreshold=3
+    Environment Variables from:
+      flashcards-api-config  ConfigMap  Optional: false
+    Environment:             <none>
+    Mounts:                  <none>
+  Volumes:                   <none>
+  Node-Selectors:            <none>
+  Tolerations:               <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Progressing    True    NewReplicaSetAvailable
+  Available      True    MinimumReplicasAvailable
