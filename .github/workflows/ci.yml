@@ -68,7 +68,11 @@ jobs:
         with:
           go-version-file: go.mod
 
+      # gosec cannot read Go 1.27 export data yet, so it analyses the code with Go 1.26
+      # (go.mod allows it). govulncheck below still checks the real go1.27.2 toolchain.
       - name: gosec — static analysis of the Go code
+        env:
+          GOTOOLCHAIN: go1.26.5
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
           mkdir -p reports
