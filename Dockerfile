@@ -5,7 +5,7 @@ FROM golang:1.27-alpine AS build
 WORKDIR /src
 
 # Download dependencies first so this layer is cached between builds.
-COPY go.mod ./
+COPY go.mod go.sum ./
 RUN go mod download
 
 COPY *.go ./

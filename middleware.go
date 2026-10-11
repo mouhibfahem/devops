@@ -1,4 +1,4 @@
-// Observability middleware: request IDs, structured JSON logs and panic recovery.
+// Observability middleware: request IDs, structured JSON logs, metrics and panic recovery.
 // Kept out of main.go so the API itself stays small.
 package main
 
@@ -10,6 +10,8 @@ import (
 	"os"
 	"runtime/debug"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const requestIDHeader = "X-Request-ID"
@@ -38,10 +40,19 @@ func newRequestID() string {
 	return hex.EncodeToString(b)
 }
 
-// withObservability wraps the API: it tags each request with an ID, recovers from
-// panics and writes one structured log line per request.
+// withObservability wraps the API: it serves /metrics, tags each request with an ID,
+// recovers from panics, and records one structured log line plus metrics per request.
 func withObservability(next http.Handler) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("GET /metrics", promhttp.Handler())
+	mux.Handle("/", instrument(next))
+	return mux
+}
+
+func instrument(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		httpInFlight.Inc()
+		defer httpInFlight.Dec()
 		start := time.Now()
 		id := r.Header.Get(requestIDHeader)
 		if id == "" {
@@ -55,7 +66,9 @@ func withObservability(next http.Handler) http.Handler {
 				slog.Error("panic while handling request", "request_id", id, "error", err, "stack", string(debug.Stack()))
 				writeError(rec, http.StatusInternalServerError, "internal server error")
 			}
-			logRequest(r, rec.status, time.Since(start), id)
+			d := time.Since(start)
+			logRequest(r, rec.status, d, id)
+			observeRequest(r, rec.status, d)
 		}()
 		next.ServeHTTP(rec, r)
 	})
