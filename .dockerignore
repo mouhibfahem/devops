@@ -1,0 +1,9 @@
+.git
+.github
+bin
+*.md
+*_test.go
+coverage.out
+reports
+k8s
+docker-compose.yml
