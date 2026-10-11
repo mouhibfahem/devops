@@ -64,6 +64,7 @@ func instrument(next http.Handler) http.Handler {
 			id = newRequestID()
 		}
 		w.Header().Set(requestIDHeader, id)
+		setSecurityHeaders(w.Header())
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 
 		defer func() {
@@ -82,6 +83,15 @@ func instrument(next http.Handler) http.Handler {
 		}()
 		next.ServeHTTP(rec, r)
 	})
+}
+
+// setSecurityHeaders adds the headers recommended for a JSON API (found missing by the
+// OWASP ZAP scan): no MIME sniffing, no embedding, no cross-origin reads, no caching.
+func setSecurityHeaders(h http.Header) {
+	h.Set("X-Content-Type-Options", "nosniff")
+	h.Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+	h.Set("Cross-Origin-Resource-Policy", "same-origin")
+	h.Set("Cache-Control", "no-store")
 }
 
 // logRequest picks the level from the status: errors are easy to filter later.
