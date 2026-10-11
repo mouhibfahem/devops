@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- Build stage: compile a static Go binary ----
-FROM golang:1.27-alpine AS build
+FROM golang:1.27.2-alpine AS build
 WORKDIR /src
 
 # Download dependencies first so this layer is cached between builds.
