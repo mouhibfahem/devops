@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flashcards-api
+  namespace: flashcards
+  labels:
+    app: flashcards-api
+spec:
+  type: ClusterIP
+  selector:
+    app: flashcards-api
+  # Cards live in each pod's memory: keep a client on the same pod so it sees its own cards.
+  sessionAffinity: ClientIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
