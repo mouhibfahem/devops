@@ -81,6 +81,26 @@ docker compose down
 
 Image on Docker Hub: [mouhibfahem/flashcards-api](https://hub.docker.com/r/mouhibfahem/flashcards-api)
 
+## Observability
+
+### Structured logs
+
+Every request produces one JSON log line on stdout (Go `log/slog`), written by
+the middleware in [`middleware.go`](middleware.go):
+
+```json
+{"time":"2026-10-11T10:42:04.07+01:00","level":"WARN","msg":"request","request_id":"a2ac2e44bc95dcde","method":"GET","path":"/cards/42","query":"","status":404,"duration_ms":0,"remote_addr":"[::1]:60504","user_agent":"curl/8.19.0"}
+```
+
+- **Level from the status code**: `INFO` (2xx/3xx), `WARN` (4xx), `ERROR` (5xx).
+- **Request ID**: reused from the `X-Request-ID` header or generated, returned in
+  the response header and present in every log line, to follow one request.
+- **Panics** are recovered, logged at `ERROR` with the stack trace, and answered
+  with a `500` instead of crashing the server.
+
+Sample output: [`docs/evidence/sample-logs.jsonl`](docs/evidence/sample-logs.jsonl).
+With Docker: `docker compose logs -f api`.
+
 ## CI/CD
 
 Every push to `main` and every pull request runs the

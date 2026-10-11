@@ -141,7 +141,7 @@ func NewRouter(s *Store) http.Handler {
 
 func main() {
 	port := cmp.Or(os.Getenv("PORT"), "8080")
-	server := &http.Server{Addr: ":" + port, Handler: NewRouter(NewStore()),
+	server := &http.Server{Addr: ":" + port, Handler: withObservability(NewRouter(NewStore())),
 		ReadHeaderTimeout: 5 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("flashcards API listening on :%s", port)
 	log.Fatal(server.ListenAndServe())
