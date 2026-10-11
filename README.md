@@ -61,6 +61,26 @@ curl -X DELETE http://localhost:8080/cards/4
 
 > Cards are kept in memory: restarting the API resets them to the seeded cards.
 
+## Docker
+
+The image is built from a multi-stage [`Dockerfile`](Dockerfile): Go compiles a
+static binary, then only that binary is copied into a minimal
+[distroless](https://github.com/GoogleContainerTools/distroless) image
+(about 16 MB, no shell, runs as a non-root user).
+
+```bash
+# Pull and run the published image from Docker Hub
+docker run --rm -p 8080:8080 mouhibfahem/flashcards-api:latest
+
+# Or build and run locally with Docker Compose
+docker compose up -d --build
+API_PORT=8085 docker compose up -d --build   # if port 8080 is already taken
+docker compose logs -f api
+docker compose down
+```
+
+Image on Docker Hub: [mouhibfahem/flashcards-api](https://hub.docker.com/r/mouhibfahem/flashcards-api)
+
 ## CI/CD
 
 Every push to `main` and every pull request runs the
@@ -70,8 +90,11 @@ Every push to `main` and every pull request runs the
 2. `go vet` static checks
 3. Unit tests with the race detector and a coverage report (shown in the run summary)
 4. Build of the binary
+5. Build of the Docker image — and, on `main` only, push to Docker Hub with the
+   tags `latest` and `sha-<commit>`
 
-The coverage report is kept as a downloadable artifact of each run.
+Docker Hub credentials are stored as GitHub secrets (`DOCKERHUB_USERNAME`,
+`DOCKERHUB_TOKEN`), never in the code. The coverage report is kept as a downloadable artifact of each run.
 
 ## Roadmap
 
