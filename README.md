@@ -89,7 +89,7 @@ Every request produces one JSON log line on stdout (Go `log/slog`), written by
 the middleware in [`middleware.go`](middleware.go):
 
 ```json
-{"time":"2026-10-11T10:42:04.07+01:00","level":"WARN","msg":"request","request_id":"a2ac2e44bc95dcde","method":"GET","path":"/cards/42","query":"","status":404,"duration_ms":0,"remote_addr":"[::1]:60504","user_agent":"curl/8.19.0"}
+{"time":"2026-10-11T10:42:04.07+01:00","level":"WARN","msg":"request","request_id":"a2ac2e44bc95dcde","trace_id":"72b8b7723092555e1df6374a7a4c204b","span_id":"3a5991220a14c2d0","method":"GET","path":"/cards/42","query":"","status":404,"duration_ms":0,"remote_addr":"[::1]:60504","user_agent":"curl/8.19.0"}
 ```
 
 - **Level from the status code**: `INFO` (2xx/3xx), `WARN` (4xx), `ERROR` (5xx).
@@ -127,6 +127,7 @@ docker compose up -d --build
 | API | http://localhost:8080 |
 | Prometheus | http://localhost:9090 |
 | Grafana (dashboard **Flashcards API**, anonymous view, admin/admin) | http://localhost:3000 |
+| Jaeger (traces) | http://localhost:16686 |
 
 The Grafana data source and dashboard are provisioned from
 [`observability/`](observability/), so they appear automatically. The dashboard
@@ -134,6 +135,23 @@ shows requests per second, error rates, p50/p95/p99 latency and traffic by route
 and status:
 
 ![Grafana dashboard](docs/evidence/grafana-dashboard.png)
+
+### Tracing
+
+Each request is traced with [OpenTelemetry](https://opentelemetry.io/)
+([`tracing.go`](tracing.go)): the middleware starts one span per request, named
+after its route (`GET /cards/{id}`), with the HTTP method, route and status code
+as attributes. Spans are exported over OTLP/HTTP to **Jaeger** when
+`OTEL_EXPORTER_OTLP_ENDPOINT` is set (Docker Compose does it).
+
+- An incoming W3C `traceparent` header is continued, so the API can join a trace
+  started by another service.
+- Every log line carries `trace_id` and `span_id`: from a log line you can open
+  the matching trace in Jaeger, and the other way round.
+
+Jaeger UI: http://localhost:16686 (service **flashcards-api**).
+
+![Jaeger traces](docs/evidence/jaeger-search.png)
 
 ## CI/CD
 

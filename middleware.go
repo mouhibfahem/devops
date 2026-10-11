@@ -1,4 +1,4 @@
-// Observability middleware: request IDs, structured JSON logs, metrics and panic recovery.
+// Observability middleware: request IDs, structured JSON logs, metrics, tracing and panic recovery.
 // Kept out of main.go so the API itself stays small.
 package main
 
@@ -12,6 +12,10 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/codes"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const requestIDHeader = "X-Request-ID"
@@ -40,12 +44,13 @@ func newRequestID() string {
 	return hex.EncodeToString(b)
 }
 
-// withObservability wraps the API: it serves /metrics, tags each request with an ID,
-// recovers from panics, and records one structured log line plus metrics per request.
+// withObservability wraps the API: it serves /metrics, starts a trace span and tags
+// each request with an ID, recovers from panics, and records one structured log line
+// plus metrics per request.
 func withObservability(next http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET /metrics", promhttp.Handler())
-	mux.Handle("/", instrument(next))
+	mux.Handle("/", otelhttp.NewHandler(instrument(next), "http.request"))
 	return mux
 }
 
@@ -62,10 +67,15 @@ func instrument(next http.Handler) http.Handler {
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 
 		defer func() {
+			span := trace.SpanFromContext(r.Context())
 			if err := recover(); err != nil {
-				slog.Error("panic while handling request", "request_id", id, "error", err, "stack", string(debug.Stack()))
+				slog.ErrorContext(r.Context(), "panic while handling request", "request_id", id, "error", err, "stack", string(debug.Stack()))
 				writeError(rec, http.StatusInternalServerError, "internal server error")
+				span.SetStatus(codes.Error, "panic")
 			}
+			// Name the span after the route ("GET /cards/{id}") so traces group nicely in Jaeger.
+			span.SetName(route(r))
+			span.SetAttributes(semconv.HTTPRoute(route(r)), semconv.HTTPResponseStatusCode(rec.status))
 			d := time.Since(start)
 			logRequest(r, rec.status, d, id)
 			observeRequest(r, rec.status, d)
@@ -83,8 +93,11 @@ func logRequest(r *http.Request, status int, d time.Duration, id string) {
 	case status >= 400:
 		level = slog.LevelWarn
 	}
+	sc := trace.SpanContextFromContext(r.Context())
 	slog.Log(r.Context(), level, "request",
 		"request_id", id,
+		"trace_id", sc.TraceID().String(),
+		"span_id", sc.SpanID().String(),
 		"method", r.Method,
 		"path", r.URL.Path,
 		"query", r.URL.RawQuery,
