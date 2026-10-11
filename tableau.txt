@@ -1,7 +1,0 @@
-https://github.com/users/mouhibfahem/projects/3
-
-
-À retenir pour l'oral : « Une image est un modèle figé de l'application. Un conteneur est cette image en train de tourner. Le build en deux étapes rend l'image petite et plus sûre. »
-
-
-À retenir pour l'oral : « CI = Intégration Continue. Chaque modification est vérifiée automatiquement. Une erreur est détectée avant d'arriver sur main, et pas chez l'utilisateur. »
