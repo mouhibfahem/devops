@@ -18,3 +18,10 @@ Thumbs.db
 
 # Personal notes (not part of the project)
 tableau.txt
+
+# LaTeX build files
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz

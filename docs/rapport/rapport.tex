@@ -1,0 +1,228 @@
+% Rapport final — Projet DevOps : Flashcards API
+% Compilation : pdflatex rapport.tex (deux fois pour la table des matières éventuelle)
+\documentclass[11pt,a4paper]{article}
+
+% ---------- Informations de la page de garde (à compléter) ----------
+\newcommand{\etablissement}{Nom de l'établissement}
+\newcommand{\departement}{Département / Filière}
+\newcommand{\module}{DevOps}
+\newcommand{\etudiant}{Mouhib Fahem}
+\newcommand{\enseignant}{Nom de l'enseignant(e)}
+\newcommand{\annee}{2026 -- 2027}
+\newcommand{\daterendu}{Octobre 2026}
+% --------------------------------------------------------------------
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,margin=1.7cm,top=1.4cm,bottom=1.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{accent}{HTML}{0B6BCB}
+\definecolor{muted}{HTML}{57606A}
+\definecolor{tint}{HTML}{EEF5FC}
+
+\titleformat{\section}{\large\bfseries\color{accent}}{\thesection.}{0.5em}{}[\vspace{-0.6ex}\textcolor{accent!30}{\rule{\linewidth}{0.4pt}}]
+\titlespacing*{\section}{0pt}{1.3ex}{0.6ex}
+\setlist{nosep,leftmargin=1.3em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45ex}
+\renewcommand{\arraystretch}{1.18}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{muted}Projet DevOps --- Flashcards API}
+\fancyhead[R]{\small\color{muted}\etudiant}
+\fancyfoot[C]{\small\color{muted}\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+\newcommand{\code}[1]{\texttt{\small #1}}
+
+\begin{document}
+
+% =========================== PAGE DE GARDE ===========================
+\begin{titlepage}
+  \centering
+  {\large\scshape \etablissement\par}
+  \vspace{0.2cm}
+  {\scshape \departement\par}
+  \vspace{0.3cm}
+  \textcolor{accent}{\rule{0.85\linewidth}{0.8pt}}\par
+  \vspace{3.2cm}
+
+  {\normalsize\scshape\color{muted} Module : \module\par}
+  \vspace{0.6cm}
+  {\Huge\bfseries Flashcards API\par}
+  \vspace{0.4cm}
+  {\Large Une petite API, toute la chaîne DevOps\par}
+  \vspace{0.3cm}
+  {\large\color{muted} CI/CD $\cdot$ Docker $\cdot$ Kubernetes $\cdot$ Observabilité $\cdot$ Sécurité\par}
+  \vspace{1.2cm}
+  {\Large\bfseries Rapport final de projet\par}
+
+  \vspace{2.6cm}
+  \begin{tikzpicture}[node distance=0.35cm, box/.style={draw=accent, fill=tint, rounded corners=3pt, minimum width=2.25cm, minimum height=0.75cm, font=\small}]
+    \node[box] (a) {Code};
+    \node[box, right=of a] (b) {CI/CD};
+    \node[box, right=of b] (c) {Docker};
+    \node[box, right=of c] (d) {Kubernetes};
+    \node[box, right=of d] (e) {Observabilité};
+    \foreach \x/\y in {a/b,b/c,c/d,d/e} \draw[-{Stealth}, muted] (\x) -- (\y);
+  \end{tikzpicture}
+
+  \vfill
+  \begin{tabular}{@{}ll@{}}
+    \textbf{Réalisé par :} & \etudiant \\[0.15cm]
+    \textbf{Encadré par :} & \enseignant \\[0.15cm]
+    \textbf{Dépôt :} & \url{https://github.com/mouhibfahem/devops} \\[0.15cm]
+    \textbf{Image Docker :} & \url{https://hub.docker.com/r/mouhibfahem/flashcards-api} \\
+  \end{tabular}
+
+  \vspace{1.2cm}
+  \textcolor{accent}{\rule{0.85\linewidth}{0.8pt}}\par
+  \vspace{0.2cm}
+  {\large Année universitaire \annee \quad$\cdot$\quad \daterendu\par}
+\end{titlepage}
+% =====================================================================
+
+\section{Objectif et application}
+L'objectif était d'appliquer toute la chaîne DevOps à un petit service : du code jusqu'au déploiement, avec
+automatisation, observabilité et sécurité. L'application est une \textbf{API REST de flashcards} écrite en Go
+(bibliothèque standard, \textbf{149 lignes} dans \code{main.go}) qui aide à réviser des notions du cours.
+Elle permet de créer, lister, consulter et supprimer des cartes, et propose un \textbf{mode quiz}
+(\code{GET /cards/random}) qui renvoie une question au hasard sans sa réponse. Les tests unitaires couvrent
+\textbf{90,8\,\%} du code.
+
+\section{Architecture}
+\begin{center}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    stage/.style={draw=muted, rounded corners=3pt, font=\footnotesize, minimum width=2.75cm, minimum height=0.8cm, fill=white},
+    svc/.style={draw=muted, rounded corners=3pt, minimum width=3.2cm, minimum height=0.85cm, fill=white},
+    arr/.style={-{Stealth}, muted},
+    lbl/.style={font=\scriptsize, text=muted}]
+  % Bande 1 : pipeline
+  \fill[gray!6, draw=gray!35, rounded corners=5pt] (-0.25,0.55) rectangle (17.3,-1.15);
+  \node[anchor=west, font=\small\bfseries, text=muted] at (-0.1,0.25) {1 $\cdot$ Pipeline GitHub Actions (à chaque Pull Request et merge)};
+  \node[stage] (p1) at (1.2,-0.5) {Lint + tests};
+  \node[stage] (p2) at (4.7,-0.5) {SAST};
+  \node[stage] (p3) at (8.2,-0.5) {Image + Trivy};
+  \node[stage] (p4) at (11.7,-0.5) {Kubernetes + DAST};
+  \node[stage, draw=green!50!black] (p5) at (15.4,-0.5) {Docker Hub};
+  \foreach \x/\y in {p1/p2,p2/p3,p3/p4,p4/p5} \draw[arr] (\x) -- (\y);
+  % Bande 2 : exécution
+  \fill[gray!6, draw=gray!35, rounded corners=5pt] (-0.25,-1.5) rectangle (17.3,-5.6);
+  \node[anchor=west, font=\small\bfseries, text=muted] at (-0.1,-1.8) {2 $\cdot$ Exécution : Kubernetes (kind) ou Docker Compose};
+  \node[draw=accent, fill=tint, line width=0.9pt, rounded corners=4pt, minimum width=4.2cm, minimum height=2.9cm,
+        align=center] (api) at (2.2,-3.75)
+        {\textbf{Flashcards API (Go)}\\[2pt]\scriptsize 2 pods $\cdot$ Service $\cdot$ sondes\\\scriptsize\code{/cards} $\cdot$ \code{/health} $\cdot$ \code{/metrics}\\\scriptsize logs JSON (slog)\\\scriptsize spans OpenTelemetry};
+  \node[svc] (prom) at (8.2,-2.85) {Prometheus};
+  \node[svc] (graf) at (13.6,-2.85) {Grafana (dashboard)};
+  \node[svc] (jae)  at (8.2,-4.55) {Jaeger (traces)};
+  \node[svc] (zap)  at (13.6,-4.55) {OWASP ZAP (DAST)};
+  \draw[arr] (prom.west) -- node[above, lbl] {scrape} (prom.west -| api.east);
+  \draw[arr] (prom) -- (graf);
+  \draw[arr] (jae.west -| api.east) -- node[above, lbl] {OTLP} (jae.west);
+  \draw[arr] (zap.south) -- ++(0,-0.55) -| node[pos=0.25, below, lbl] {attaque l'API déployée} (api.south);
+\end{tikzpicture}%
+}
+\end{center}
+Chaque tâche suit le même flux : une \textbf{issue} (10 issues, tableau Kanban public GitHub Projects), une
+\textbf{branche}, une \textbf{Pull Request} liée à l'issue, la vérification par le pipeline, puis le merge.
+Au total, \textbf{8 Pull Requests} ont été fusionnées.
+
+\section{Pipeline CI/CD (GitHub Actions)}
+\begin{tabularx}{\linewidth}{@{}p{3.3cm}X@{}}
+\toprule
+\textbf{Job} & \textbf{Ce qu'il fait} \\
+\midrule
+Lint, test, build & \code{gofmt}, \code{go vet}, tests avec détecteur de concurrence et couverture, compilation \\
+SAST & gosec (résultats dans GitHub code scanning), govulncheck (dépendances), gitleaks (secrets dans l'historique) \\
+Image & Build Docker unique puis scan \textbf{Trivy} : échec si une faille HIGH/CRITICAL corrigible est présente \\
+Deploy + DAST & Cluster \textbf{kind} neuf, déploiement de l'image scannée, tests à travers le Service, scan \textbf{OWASP ZAP} de l'API déployée \\
+Publish (main) & Push sur Docker Hub (\code{latest}, \code{sha-<commit>}) \textbf{uniquement si tout est vert} \\
+\bottomrule
+\end{tabularx}
+
+Les identifiants Docker Hub sont des \textbf{secrets GitHub}, jamais dans le code. Les rapports (couverture,
+SAST, Trivy, ZAP) sont conservés comme artefacts de chaque exécution.
+
+\section{Conteneurisation}
+\code{Dockerfile} en deux étapes : \code{golang:1.27.2-alpine} compile un binaire statique, puis seul ce binaire
+est copié dans une image \textbf{distroless} (environ 30\,Mo, sans shell, utilisateur non-root 65532). Le fichier
+\code{docker-compose.yml} lance l'API avec Prometheus, Grafana et Jaeger en une commande.
+
+\section{Observabilité}
+\begin{minipage}[t]{0.58\linewidth}
+\begin{itemize}
+  \item \textbf{Logs} : une ligne JSON par requête (\code{log/slog}) avec méthode, route, statut, durée,
+        \code{request\_id}, \code{trace\_id}. Le niveau suit le statut : INFO, WARN (4xx), ERROR (5xx et
+        \emph{panics} récupérées).
+  \item \textbf{Métriques} : \code{/metrics} au format Prometheus : compteur de requêtes, histogramme des temps de
+        réponse, requêtes en cours. Le label \code{route} utilise le motif (\code{GET /cards/\{id\}}) pour limiter
+        le nombre de séries.
+  \item \textbf{Dashboard} Grafana provisionné automatiquement : requêtes/s, taux d'erreurs, latence p50/p95/p99.
+  \item \textbf{Tracing} : un span OpenTelemetry par requête, exporté en OTLP vers Jaeger ; un en-tête
+        \code{traceparent} entrant est poursuivi.
+\end{itemize}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.38\linewidth}
+\vspace{0pt}
+\colorbox{tint}{\parbox{0.94\linewidth}{\small
+\textbf{Lien avec le cours SRE.} La latence p95 et le taux d'erreurs sont des \textbf{SLI}. Un \textbf{SLO}
+possible : \og 95\,\% des requêtes en moins de 200\,ms et moins de 0,1\,\% d'erreurs 5xx sur un mois \fg. Lors
+des tests de charge, la p95 mesurée était inférieure à 1\,ms.}}
+\end{minipage}
+
+\section{Sécurité}
+\begin{tabularx}{\linewidth}{@{}p{6.2cm}p{2.2cm}X@{}}
+\toprule
+\textbf{Problème trouvé} & \textbf{Outil} & \textbf{Correction} \\
+\midrule
+11 vulnérabilités connues dans Go 1.27.0 et \code{x/net} v0.59.0 & govulncheck & Toolchain go1.27.2 et \code{x/net} v0.60.0 \\
+Injection dans les logs (G706) & gosec & Attribut structuré \code{slog} \\
+En-têtes \code{X-Content-Type-Options} et \code{Cross-Origin-Resource-Policy} absents & OWASP ZAP & En-têtes de sécurité sur toutes les réponses ; le second scan ne garde que des alertes informatives \\
+\bottomrule
+\end{tabularx}
+
+Autres mesures : aucune fuite de secret (gitleaks), 0 faille HIGH/CRITICAL dans l'image (Trivy), corps de requête
+limité à 1\,Mo, délais d'expiration serveur, conteneur non-root et en lecture seule.
+
+\section{Kubernetes}
+Les manifests \code{k8s/}, appliqués avec Kustomize, créent un namespace, une ConfigMap, un \textbf{Deployment de
+2 réplicas} et un \textbf{Service} ClusterIP. Le Deployment définit des sondes \emph{readiness} et \emph{liveness}
+sur \code{/health}, des requêtes et limites CPU/mémoire, une mise à jour progressive sans interruption
+(\code{maxUnavailable: 0}) et un contexte de sécurité strict (non-root, système de fichiers en lecture seule,
+aucune capability Linux). Test en local avec kind : quand on supprime un pod, Kubernetes le recrée en quelques
+secondes.
+
+\section{Leçons apprises}
+\begin{itemize}
+  \item \textbf{Les scans trouvent de vrais problèmes.} govulncheck a révélé des failles dans la version même de
+        Go ; sans automatisation, elles seraient passées inaperçues.
+  \item \textbf{L'outillage évolue plus vite que les outils.} gosec ne lisait pas encore Go 1.27 et a dû être
+        exécuté avec Go 1.26. Il faut vérifier qu'un outil analyse réellement tout le code.
+  \item \textbf{Kubernetes est strict.} \code{runAsNonRoot} exige un UID numérique dans l'image ; l'erreur
+        \code{Create\allowbreak Container\allowbreak Config\allowbreak Error} l'a révélé.
+  \item \textbf{L'état en mémoire empêche de passer à l'échelle.} Avec 2 réplicas, chaque pod a ses propres
+        cartes ; une base de données serait l'étape suivante.
+  \item \textbf{Petits incréments.} Une issue = une PR vérifiée par le pipeline : chaque erreur est restée petite et
+        facile à corriger.
+\end{itemize}
+
+\section{Pistes d'amélioration}
+Base de données (PostgreSQL) pour partager les cartes entre pods, déploiement sur un cloud (bonus), Prometheus et
+Grafana dans le cluster, alertes basées sur les SLO, et spans enfants pour un tracing plus détaillé.
+
+\end{document}

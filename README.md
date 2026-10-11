@@ -243,6 +243,12 @@ Every push to `main` and every pull request runs the
 Docker Hub credentials are stored as GitHub secrets (`DOCKERHUB_USERNAME`,
 `DOCKERHUB_TOKEN`), never in the code. The coverage report is kept as a downloadable artifact of each run.
 
+## Report and presentation
+
+- Final report (French, LaTeX: cover page + 2 pages): [`docs/rapport/rapport.pdf`](docs/rapport/rapport.pdf) ([LaTeX source](docs/rapport/rapport.tex))
+- Presentation (French, open in a browser, arrow keys to navigate, F for full screen): [`docs/presentation.html`](docs/presentation.html)
+- Evidence (screenshots, logs, scan reports): [`docs/evidence/`](docs/evidence/)
+
 ## Roadmap
 
 Progress is tracked in [GitHub Issues](https://github.com/mouhibfahem/devops/issues):
