@@ -86,3 +86,18 @@ func TestPanicIsRecoveredAndLogged(t *testing.T) {
 		t.Fatalf("expected an ERROR request entry with status 500, got %v", entry)
 	}
 }
+
+func TestSecurityHeaders(t *testing.T) {
+	captureLogs(t)
+	w := serve(NewRouter(NewStore()), httptest.NewRequest(http.MethodGet, "/cards", nil))
+	for header, want := range map[string]string{
+		"X-Content-Type-Options":       "nosniff",
+		"Cross-Origin-Resource-Policy": "same-origin",
+		"Cache-Control":                "no-store",
+		"Content-Security-Policy":      "default-src 'none'; frame-ancestors 'none'",
+	} {
+		if got := w.Header().Get(header); got != want {
+			t.Errorf("%s = %q, want %q", header, got, want)
+		}
+	}
+}

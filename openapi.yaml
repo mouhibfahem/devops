@@ -1,0 +1,116 @@
+openapi: 3.0.3
+info:
+  title: Flashcards API
+  version: 1.0.0
+  description: A small REST API to revise course topics with flashcards.
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: The service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+  /cards:
+    get:
+      summary: List cards
+      parameters:
+        - name: topic
+          in: query
+          required: false
+          schema: { type: string, example: docker }
+      responses:
+        "200":
+          description: The cards, in id order
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Card" }
+    post:
+      summary: Create a card
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewCard" }
+      responses:
+        "201":
+          description: The created card
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Card" }
+        "400": { $ref: "#/components/responses/Error" }
+  /cards/random:
+    get:
+      summary: Quiz mode — a random question without its answer
+      parameters:
+        - name: topic
+          in: query
+          required: false
+          schema: { type: string, example: sre }
+      responses:
+        "200":
+          description: A random question
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer, example: 2 }
+                  topic: { type: string, example: sre }
+                  question: { type: string, example: "What is an SLO?" }
+        "404": { $ref: "#/components/responses/Error" }
+  /cards/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, example: 1 }
+    get:
+      summary: Get one card
+      responses:
+        "200":
+          description: The card
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Card" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      summary: Delete one card
+      responses:
+        "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+components:
+  schemas:
+    NewCard:
+      type: object
+      required: [question, answer]
+      properties:
+        topic: { type: string, example: k8s }
+        question: { type: string, example: "What is a Pod?" }
+        answer: { type: string, example: "The smallest deployable unit in Kubernetes" }
+    Card:
+      allOf:
+        - $ref: "#/components/schemas/NewCard"
+        - type: object
+          properties:
+            id: { type: integer, example: 4 }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string, example: card not found }

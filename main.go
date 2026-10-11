@@ -5,6 +5,7 @@ import (
 	"cmp"
 	"encoding/json"
 	"log"
+	"log/slog"
 	"math/rand/v2"
 	"net/http"
 	"os"
@@ -143,6 +144,6 @@ func main() {
 	port := cmp.Or(os.Getenv("PORT"), "8080")
 	server := &http.Server{Addr: ":" + port, Handler: withObservability(NewRouter(NewStore())),
 		ReadHeaderTimeout: 5 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
-	log.Printf("flashcards API listening on :%s", port)
+	slog.Info("flashcards API listening", "port", port)
 	log.Fatal(server.ListenAndServe())
 }
