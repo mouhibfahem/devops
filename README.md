@@ -153,6 +153,35 @@ Jaeger UI: http://localhost:16686 (service **flashcards-api**).
 
 ![Jaeger traces](docs/evidence/jaeger-search.png)
 
+## Security
+
+Security checks run in the pipeline on every pull request and push. The image is
+published to Docker Hub only if all of them pass.
+
+| Check | Tool | What it looks for |
+| --- | --- | --- |
+| SAST | [gosec](https://github.com/securego/gosec) | Insecure patterns in the Go code (results in GitHub code scanning) |
+| Dependencies | [govulncheck](https://go.dev/blog/govulncheck) | Known vulnerabilities in Go and modules actually called by the code |
+| Secrets | [gitleaks](https://github.com/gitleaks/gitleaks) | Passwords or tokens committed anywhere in the git history |
+| Image | [Trivy](https://trivy.dev/) | Vulnerable OS packages or libraries in the Docker image (fails on fixable HIGH/CRITICAL) |
+| DAST | [OWASP ZAP](https://www.zaproxy.org/) API scan | Attacks the running API using [`openapi.yaml`](openapi.yaml) |
+
+### What the scans found and how it was fixed
+
+| Finding | Tool | Fix |
+| --- | --- | --- |
+| 11 known vulnerabilities in the Go 1.27.0 standard library and `golang.org/x/net` v0.59.0 | govulncheck | Toolchain pinned to **go1.27.2**, `x/net` **v0.60.0** |
+| Log injection (G706): environment value written with `log.Printf` | gosec | Structured `slog` attribute |
+| `X-Content-Type-Options` and `Cross-Origin-Resource-Policy` headers missing (Low) | OWASP ZAP | Security headers added to every response |
+
+ZAP reports before and after the fix:
+[`zap-report-before.md`](docs/evidence/zap-report-before.md) ·
+[`zap-report-after.md`](docs/evidence/zap-report-after.md) (only informational
+notes remain). Full reports (HTML/JSON) are artifacts of each pipeline run.
+
+Other hardening: distroless image without a shell, non-root user, request body
+limited to 1 MB, server timeouts, secrets only in GitHub secrets.
+
 ## CI/CD
 
 Every push to `main` and every pull request runs the
@@ -162,8 +191,11 @@ Every push to `main` and every pull request runs the
 2. `go vet` static checks
 3. Unit tests with the race detector and a coverage report (shown in the run summary)
 4. Build of the binary
-5. Build of the Docker image — and, on `main` only, push to Docker Hub with the
-   tags `latest` and `sha-<commit>`
+5. SAST: gosec, govulncheck, gitleaks
+6. Docker image build + Trivy scan
+7. DAST: OWASP ZAP scan of the running container
+8. On `main` only, once everything passed: push to Docker Hub with the tags
+   `latest` and `sha-<commit>`
 
 Docker Hub credentials are stored as GitHub secrets (`DOCKERHUB_USERNAME`,
 `DOCKERHUB_TOKEN`), never in the code. The coverage report is kept as a downloadable artifact of each run.
