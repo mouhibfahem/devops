@@ -245,7 +245,7 @@ Docker Hub credentials are stored as GitHub secrets (`DOCKERHUB_USERNAME`,
 
 ## Report and presentation
 
-- Final report (French, 2 pages): [`docs/rapport.pdf`](docs/rapport.pdf) ([HTML source](docs/rapport.html))
+- Final report (French, LaTeX: cover page + 2 pages): [`docs/rapport/rapport.pdf`](docs/rapport/rapport.pdf) ([LaTeX source](docs/rapport/rapport.tex))
 - Presentation (French, open in a browser, arrow keys to navigate, F for full screen): [`docs/presentation.html`](docs/presentation.html)
 - Evidence (screenshots, logs, scan reports): [`docs/evidence/`](docs/evidence/)
 
