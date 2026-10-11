@@ -1,5 +1,7 @@
 # DevOps Project — Flashcards API
 
+[![CI](https://github.com/mouhibfahem/devops/actions/workflows/ci.yml/badge.svg)](https://github.com/mouhibfahem/devops/actions/workflows/ci.yml)
+
 A small REST API to revise course topics with flashcards, used to practice DevOps
 end to end: version control, CI/CD, containerization, Kubernetes, observability
 and security.
@@ -58,6 +60,18 @@ curl -X DELETE http://localhost:8080/cards/4
 ```
 
 > Cards are kept in memory: restarting the API resets them to the seeded cards.
+
+## CI/CD
+
+Every push to `main` and every pull request runs the
+[CI workflow](.github/workflows/ci.yml) on GitHub Actions:
+
+1. `gofmt` formatting check
+2. `go vet` static checks
+3. Unit tests with the race detector and a coverage report (shown in the run summary)
+4. Build of the binary
+
+The coverage report is kept as a downloadable artifact of each run.
 
 ## Roadmap
 

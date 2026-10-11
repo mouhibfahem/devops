@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Lint, test and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Check formatting (gofmt)
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "These files are not formatted with gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Static checks (go vet)
+        run: go vet ./...
+
+      - name: Unit tests with race detector and coverage
+        run: go test -race -coverprofile=coverage.out ./...
+
+      - name: Coverage summary
+        run: |
+          go tool cover -func=coverage.out | tee coverage.txt
+          echo "### Test coverage: $(tail -1 coverage.txt | awk '{print $3}')" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build the binary
+        run: go build -o bin/api .
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.out
